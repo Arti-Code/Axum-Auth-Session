@@ -1,0 +1,20 @@
+[package]
+name = "db"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+tokio = { version = "1.42.0", features = ["full"]}
+
+sqlx = { version="0.8.3", features = [ "sqlite", "runtime-tokio", "tls-native-tls" ] }
+serde = { version = "1.0.215", features = ["derive"] }
+
+axum = { version = "0.8.1"}
+axum_session = "0.16.0"
+axum_session_auth = { version = "0.16.0"   }
+axum_session_sqlx = { version = "0.5.0", features = [ "sqlite", "tls-rustls"] }
+
+bcrypt = "0.16.0"
+
+async-trait = {version = "0.1.87"  }
+anyhow = "1.0.97"
