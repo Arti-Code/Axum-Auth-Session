@@ -1,11 +1,11 @@
 [package]
 name = "srv"
-version = "0.2.1"
+version = "0.2.2"
 edition = "2021"
 
 [dependencies]
-tokio = { version = "1.45.0", features = ["full"]}
-sqlx = { version="0.8.5", features = [ "sqlite", "runtime-tokio", "tls-native-tls" ] }
+tokio = { version = "1.45.1", features = ["full"]}
+sqlx = { version="0.8.6", features = [ "sqlite", "runtime-tokio", "tls-native-tls" ] }
 serde = { version = "1.0.215", features = ["derive"] }
 axum = { version = "0.8.4"}
 axum_session = "0.16.0"
