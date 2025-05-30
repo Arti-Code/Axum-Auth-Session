@@ -3,26 +3,26 @@ use axum_session_auth::AuthSession;
 use axum_session_sqlx::SessionSqlitePool;
 use sqlx::{Pool, Sqlite, SqlitePool};
 use tracing::info;
-use crate::model::*;
+use crate::model::{character::CharacterRequest, user::*};
 
 
 
-pub async fn register(State(pool): State<Pool<Sqlite>>, Json(user): Json<UserRequest>) -> impl IntoResponse {
+pub async fn user_register(State(pool): State<Pool<Sqlite>>, Json(user): Json<UserRequest>) -> impl IntoResponse {
   info!("register: {}", user.username);
-  let rows: Vec<UserSql> = sqlx::query_as("SELECT * FROM user WHERE username = ?1").bind(&user.username).fetch_all(&pool).await.unwrap();
+  let rows: Vec<UserSql> = sqlx::query_as("SELECT * FROM users WHERE username = ?1").bind(&user.username).fetch_all(&pool).await.unwrap();
   if rows.len() != 0 {
     let msg = format!("username: {} is already taken!", user.username);
     (StatusCode::BAD_REQUEST, msg).into_response()
   } else {
       let hash_password = bcrypt::hash(user.password, 10).unwrap();
-      sqlx::query("INSERT INTO user (username, password) VALUES (?1, ?2)").bind(&user.username).bind(&hash_password).execute(&pool).await.unwrap();
+      sqlx::query("INSERT INTO users (username, password) VALUES (?1, ?2)").bind(&user.username).bind(&hash_password).execute(&pool).await.unwrap();
       info!("user: {} is registered!", user.username);
       (StatusCode::OK, "Register successful!").into_response()
   }
 }
 
 pub async fn login(auth: AuthSession<User, i64, SessionSqlitePool, SqlitePool>, State(pool): State<Pool<Sqlite>>, Json(user): Json<UserRequest>) -> impl IntoResponse {
-  let rows: Vec<UserSql> = sqlx::query_as("SELECT * FROM user WHERE username = ?1").bind(&user.username).fetch_all(&pool).await.unwrap();
+  let rows: Vec<UserSql> = sqlx::query_as("SELECT * FROM users WHERE username = ?1").bind(&user.username).fetch_all(&pool).await.unwrap();
   if rows.len() == 0 {
     let msg = format!("username: {} is not registered", user.username);
     (StatusCode::BAD_REQUEST, msg).into_response()
@@ -31,7 +31,13 @@ pub async fn login(auth: AuthSession<User, i64, SessionSqlitePool, SqlitePool>, 
       if is_valid {
         auth.login_user(rows[0].id as i64);
         info!("{} logged in!", user.username);
-        (StatusCode::OK, "Login successful").into_response()
+        let response_user = User {
+          id: rows[0].id as i64,
+          username: rows[0].username.clone(),
+          anonymous: false,
+          admin: rows[0].admin,
+        };
+        (StatusCode::OK, Json(response_user)).into_response()
       } else {
           (StatusCode::UNAUTHORIZED, "Password is incorrect!").into_response()
       }
@@ -44,15 +50,15 @@ pub async fn logout(auth: AuthSession<User, i64, SessionSqlitePool, SqlitePool>)
   (StatusCode::OK, "Log out successful!").into_response()
 }
 
-pub async fn profile(Extension(user): Extension<User>) -> impl IntoResponse {
+pub async fn user_profile(Extension(user): Extension<User>) -> impl IntoResponse {
   //let msg = format!("Hello , {} , your id is {}", user.username, user.id);
   info!("profile: {} ({})", user.username, user.id);
   //Json(user)
   (StatusCode::OK, Json(user)).into_response()
 }
 
-pub async fn remove(auth: AuthSession<User, i64, SessionSqlitePool, SqlitePool>, Extension(user): Extension<User>, State(pool): State<Pool<Sqlite>>,) -> impl IntoResponse {
-    match sqlx::query("DELETE FROM user WHERE username = ?1").bind(&user.username).execute(&pool).await {
+pub async fn user_remove(auth: AuthSession<User, i64, SessionSqlitePool, SqlitePool>, Extension(user): Extension<User>, State(pool): State<Pool<Sqlite>>,) -> impl IntoResponse {
+    match sqlx::query("DELETE FROM users WHERE username = ?1").bind(&user.username).execute(&pool).await {
         Ok(_) => {
             auth.logout_user();
             info!("{} removed", user.username);
@@ -62,5 +68,40 @@ pub async fn remove(auth: AuthSession<User, i64, SessionSqlitePool, SqlitePool>,
             info!("Error: {}", e);
             return (StatusCode::BAD_REQUEST, "Error").into_response()
         }
+    }
+}
+
+
+
+// CHARACTER
+
+pub async fn character_create(State(pool): State<Pool<Sqlite>>, Json(user): Json<CharacterRequest>) -> impl IntoResponse {
+  info!("register: {}", user.name);
+  let rows: Vec<UserSql> = sqlx::query_as("SELECT * FROM characters WHERE name = ?1").bind(&user.name).fetch_all(&pool).await.unwrap();
+  if rows.len() != 0 {
+    let msg = format!("character: {} is exists!", user.name);
+    (StatusCode::BAD_REQUEST, msg).into_response()
+  } else {
+      sqlx::query("INSERT INTO characters (name, location_id, hp) VALUES (?1, ?2 ?3)").bind(&user.name).bind(1).bind(100).execute(&pool).await.unwrap();
+      info!("Character {} created!", user.name);
+      (StatusCode::OK, "Character created!").into_response()
+  }
+}
+
+pub async fn admin(Extension(user): Extension<User>, State(pool): State<Pool<Sqlite>>) -> impl IntoResponse {
+    if !user.is_admin() {
+        (StatusCode::NETWORK_AUTHENTICATION_REQUIRED, "administrator access only").into_response()
+    } else {
+        let users: Vec<UserSql> = sqlx::query_as("SELECT * from users").fetch_all(&pool).await.unwrap();
+        info!("{} users founded", users.len());
+        let users: Vec<User> = users.iter().map(|u| {
+          User {
+            username: u.username.clone(),
+            id: u.id as i64,
+            anonymous: false,
+            admin: u.admin,
+          }
+        }).collect();
+        (StatusCode::OK, Json(users)).into_response()
     }
 }
