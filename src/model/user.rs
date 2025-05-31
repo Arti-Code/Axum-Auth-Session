@@ -56,6 +56,13 @@ pub struct UserSql {
   pub admin: bool,
 }
 
+#[derive(PartialEq, Clone, Debug, Serialize, Deserialize)]
+pub struct UserSession {
+    pub session: String,
+    pub username: String,
+    pub admin: bool,
+}
+
 /* impl Debug for UserSql {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     write!(f, "UserSql {{ id: {}, username: {}, password: {} }}", self.id, self.username, self.password)

@@ -86,6 +86,7 @@ fn app(pool: Pool<Sqlite>, session_store: SessionStore<SessionSqlitePool>) -> Ro
     .route("/login", get(login))
     .route("/logout", get(logout)).route_layer(from_fn(auth))
     .route("/delete", get(user_remove)).route_layer(from_fn(auth))
+    .route("/delete2", post(user_remove2)).route_layer(from_fn(auth))
     .route("/profile", get(user_profile).route_layer(from_fn(auth)))
     .route("/character_create", post(character_create).route_layer(from_fn(auth)))
     .route("/admin", get(admin).route_layer(from_fn(auth)))
@@ -98,12 +99,12 @@ fn app(pool: Pool<Sqlite>, session_store: SessionStore<SessionSqlitePool>) -> Ro
 async fn auth(auth: AuthSession<User, i64, SessionSqlitePool, SqlitePool>, mut req: Request, next: Next) -> impl IntoResponse {
   if auth.is_authenticated() {
     let user = auth.current_user.unwrap().clone();
-    info!("ACCESS GRANTED: {}", user.username.clone());
+    //info!("ACCESS GRANTED: {}", user.username.clone());
     req.extensions_mut().insert(user);
     next.run(req).await
   } else {
-      let user = auth.current_user.unwrap().clone();
-      info!("ACCESS DENIED: {}", user.username.clone());
+      //let user = auth.current_user.unwrap().clone();
+      //info!("ACCESS DENIED: {}", user.username.clone());
       (StatusCode::UNAUTHORIZED, "ACCESS DENIED").into_response()
   }
 }
