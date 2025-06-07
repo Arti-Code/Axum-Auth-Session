@@ -56,24 +56,23 @@ async fn db_setup(pool: &Pool<Sqlite>) {
       hp INTEGER
     )
   ").await.unwrap();
-  //sqlx::query("INSERT INTO users (username, password, admin) VALUES (?1, ?2, ?3)").bind(&"guest").bind(&"guest").bind(false).execute(pool).await.unwrap();
-  //let hash_password = bcrypt::hash("arrakis".to_string(), 10).unwrap();
-  //sqlx::query("INSERT INTO users (username, password, admin) VALUES (?1, ?2, ?3)").bind(&"admin").bind(&hash_password).bind(true).execute(pool).await.unwrap();
-let rows: Vec<UserSql> = sqlx::query_as("SELECT * FROM users WHERE id = ?1").bind(&1).fetch_all(pool).await.unwrap();
+let rows: Vec<UserSql> = sqlx::query_as("SELECT * FROM users WHERE id = ?1")
+  .bind(&1).fetch_all(pool).await.unwrap();
   if rows.len() == 0 {
-    sqlx::query("INSERT INTO users (username, password, admin) VALUES (?1, ?2, ?3)").bind(&"guest").bind(&"guest").bind(false).execute(pool).await.unwrap();
+    sqlx::query("INSERT INTO users (username, password, admin) VALUES (?1, ?2, ?3)")
+      .bind(&"guest").bind(&"guest").bind(false).execute(pool).await.unwrap();
     let hash_password = bcrypt::hash("arrakis".to_string(), 10).unwrap();
-    sqlx::query("INSERT INTO users (username, password, admin) VALUES (?1, ?2, ?3)").bind(&"admin").bind(&hash_password).bind(true).execute(pool).await.unwrap();
+    sqlx::query("INSERT INTO users (username, password, admin) VALUES (?1, ?2, ?3)")
+      .bind(&"admin").bind(&hash_password).bind(true).execute(pool).await.unwrap();
   };
 }
 
 async fn list_users(pool: &Pool<Sqlite>) {
   println!("----==== USERS LIST ====----");
   let rows: Vec<UserSql> = sqlx::query_as("SELECT * FROM users").fetch_all(pool).await.unwrap();
-  println!("user count: {}", rows.len());
-  //dbg!(&rows);
+  //println!("user count: {}", rows.len());
   for row in rows {
-    println!("id: {} | user: {} {} ({})", row.id, row.username, if row.admin { "[admin]" } else { "[user]" }, row.password);
+    println!("id: {} | user: {} {}", row.id, row.username, if row.admin { "[admin]" } else { "[user]" });
   }
 }
 
@@ -99,12 +98,25 @@ fn app(pool: Pool<Sqlite>, session_store: SessionStore<SessionSqlitePool>) -> Ro
 async fn auth(auth: AuthSession<User, i64, SessionSqlitePool, SqlitePool>, mut req: Request, next: Next) -> impl IntoResponse {
   if auth.is_authenticated() {
     let user = auth.current_user.unwrap().clone();
-    //info!("ACCESS GRANTED: {}", user.username.clone());
+    let store = auth.session.get_store();
+    let id = auth.session.get_session_id().inner();
+    match auth.session.get::<String>(&id) {
+      Some(data) => {
+        //store.client.unwrap();
+        info!("id: {}", &id);
+        info!("data: {}", data.as_str());
+        //info!("ACCESS GRANTED: {}", user.username.clone());
+      },
+      None => {
+        info!("NONE");
+      }
+    }
+    
     req.extensions_mut().insert(user);
     next.run(req).await
   } else {
-      //let user = auth.current_user.unwrap().clone();
-      //info!("ACCESS DENIED: {}", user.username.clone());
+      let user = auth.current_user.unwrap().clone();
+      info!("ACCESS DENIED: {}", user.username.clone());
       (StatusCode::UNAUTHORIZED, "ACCESS DENIED").into_response()
   }
 }
