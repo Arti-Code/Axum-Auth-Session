@@ -31,7 +31,7 @@ impl User {
 impl Authentication<User, i64, SqlitePool> for  User {
     async fn load_user(userid:i64,pool:Option< &SqlitePool>) -> Result<User, anyhow::Error> {
       let user: UserSql = sqlx::query_as("SELECT * FROM users WHERE id = ?1").bind(&userid).fetch_one(pool.unwrap()).await.unwrap();
-      info!("{} is loaded!", user.username);
+      println!("{} is loaded!", user.username);
       Ok(User { id: user.id as i64, anonymous: false, username: user.username, admin: user.admin })
     }
     fn is_active(&self) -> bool {

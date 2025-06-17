@@ -1,7 +1,8 @@
 [package]
-name = "srv"
-version = "0.3.3"
+name = "axum-server"
+version = "0.3.5"
 edition = "2021"
+authors = ["Artur Gwoździowski"]
 
 [dependencies]
 tokio = { version = "1.45.1", features = ["full"]}
@@ -9,6 +10,7 @@ sqlx = { version="0.8.6", features = [ "sqlite", "runtime-tokio", "tls-native-tl
 serde = { version = "1.0.215", features = ["derive"] }
 axum = { version = "0.8.4"}
 axum_session = "0.16.0"
+#axum_extra = { version = "*", features = ["cookie"] }
 axum_session_auth = { version = "0.16.0"   }
 axum_session_sqlx = { version = "0.5.0", features = [ "sqlite", "tls-rustls"] }
 bcrypt = "0.17.0"
@@ -17,3 +19,4 @@ anyhow = "1.0.98"
 tracing = "0.1.41"
 tracing-subscriber = { version = "0.3.19", features=["env-filter"] }
 tower-http = {version = "0.6.6", features = ["cors"]}
+axum-extra = {version = "0.10.1", features = ["cookie"]}
